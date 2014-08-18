@@ -8,6 +8,7 @@ add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/openctm-1.0.3)
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/glfw-3.0.4/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/stb)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/bx)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/3rdparty/openctm-1.0.3/lib)
 
 set(SOURCE

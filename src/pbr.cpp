@@ -5,6 +5,9 @@
 
 #define FRAMEWORK_IMPLEMENTATION
 #include "framework.h"
+#include "fpumath.h"
+
+using namespace bx;
 
 void setup()
 {
