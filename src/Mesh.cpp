@@ -14,6 +14,10 @@ namespace framework {
 
   Mesh::~Mesh()
   {
+  }
+
+  void Mesh::teardown()
+  {
     glDeleteBuffers(BUFFER_COUNT, buffers_);
     glDeleteVertexArrays(1, &vao_);
   }

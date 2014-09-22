@@ -1,11 +1,12 @@
 
 #pragma once
 
+#include "ContextObject.h"
 #include <string>
 
 namespace framework {
 
-  class Mesh
+  class Mesh : public ContextObject
   {
       enum Buffer
       {
@@ -20,6 +21,8 @@ namespace framework {
     public:
       Mesh();
       ~Mesh();
+
+      void teardown();
 
       bool load(std::string const& filename);
 

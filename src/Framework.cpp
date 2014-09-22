@@ -92,6 +92,23 @@ namespace framework {
     else
       log("Using GLEW %s", glewGetString(GLEW_VERSION));
 
+    { // Display some information about the OpenGL version we are running
+      const GLubyte * renderer = glGetString(GL_RENDERER);
+      const GLubyte * vendor = glGetString(GL_VENDOR);
+      const GLubyte * version = glGetString(GL_VERSION);
+      const GLubyte * glslVersion = glGetString(GL_SHADING_LANGUAGE_VERSION);
+
+      GLint major, minor;
+      glGetIntegerv(GL_MAJOR_VERSION, &major);
+      glGetIntegerv(GL_MINOR_VERSION, &minor);
+
+      log("GL Vendor    = %s", vendor);
+      log("GL Renderer  = %s", renderer);
+      log("GL Version (string)  = %s", version);
+      log("GL Version (integer) = %d.%d", major, minor);
+      log("GLSL Version = %s", glslVersion);
+    }
+
     setup();
 
     double timeStamp = glfwGetTime();
