@@ -31,6 +31,7 @@ set(SOURCE
     src/Mesh.cpp
     src/Material.cpp
     src/Camera.cpp
+    src/Program.cpp
     3rdparty/glew-1.11.0/src/glew.c
 )
 
