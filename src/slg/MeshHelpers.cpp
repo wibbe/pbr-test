@@ -27,6 +27,7 @@
 #include <map>
 
 #include "MeshHelpers.hpp"
+#include "OpenGL.hpp"
 
 namespace slg {
 
@@ -334,10 +335,11 @@ namespace slg {
     pushTriangle(indicies, 0, 1, 2);
     pushTriangle(indicies, 0, 2, 3);
 
-    mesh.addBuffer(Mesh::VERTEX, vertices);
-    mesh.addBuffer(Mesh::UV, coords);
-    mesh.addBuffer(Mesh::INDICIES, indicies);
-    mesh.setIndexCount(indicies.size());
+    mesh.begin()
+        .add(Mesh::VERTEX, GL_FLOAT, 3, vertices)
+        .add(Mesh::UV, GL_FLOAT, 2, coords)
+        .add(Mesh::INDICIES, 0, 0, indicies)
+        .end(indicies.size());
   }
 
 }

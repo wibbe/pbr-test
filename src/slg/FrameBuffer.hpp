@@ -1,16 +1,16 @@
 /**
- * Copyright (c) 2012 Daniel Wiberg
- * 
+ * Copyright (c) 2014 Daniel Wiberg
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -20,17 +20,16 @@
  * THE SOFTWARE.
  */
 
-#ifndef SLG_FRAMEBUFFER_HPP
-#define SLG_FRAMEBUFFER_HPP
+#pragma once
 
 namespace slg {
-  
+
   class FrameBuffer
   {
     private:
       static const int MAX_COLOR_BUFFERS = 4;
 
-      FrameBuffer(FrameBuffer const& copy) { } 
+      FrameBuffer(FrameBuffer const& copy) { }
       FrameBuffer const& operator = (FrameBuffer const& copy) { return *this; }
 
     public:
@@ -43,10 +42,10 @@ namespace slg {
 
       /**
        * Create and attach a texture to the framebuffer
-       * 
+       *
        * Format can be one of the following:
        * - GL_RGB, GL_RGBA, GL_ALPHA, and so on...
-       * 
+       *
        * Type should be:
        * - GL_UNSIGNED_BYTE, GL_FLOAT, GL_R32F
        */
@@ -88,7 +87,5 @@ namespace slg {
       FrameBuffer & m_buffer;
       int m_viewport[4];
   };
-  
-}
 
-#endif
+}

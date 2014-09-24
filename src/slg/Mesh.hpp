@@ -1,6 +1,26 @@
+/**
+ * Copyright (c) 2014 Daniel Wiberg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
-#ifndef SLG_MESH_HPP
-#define SLG_MESH_HPP
+#pragma once
 
 #include "Buffer.hpp"
 #include "Shader.hpp"
@@ -23,36 +43,30 @@ namespace slg {
         BUFFER_COUNT
       };
 
-    private:
-      Mesh(Mesh const& copy) { }
-      Mesh const& operator = (Mesh const& copy) { return *this; }
-
     public:
       Mesh();
       ~Mesh();
 
       void destroy();
-      bool load(const char * filename, bool useIndicies = true, bool computeTangents = false);
+      bool load(const char * filename, bool computeTangents = false);
+
+      Mesh & begin();
+      void end(unsigned indexCount);
+
+      Mesh & add(Attributes attrib, unsigned type, unsigned elemCount, const void * data, size_t size);
 
       template <typename T>
-      void addBuffer(Attributes attrib, std::vector<T> const& data)
+      Mesh & add(Attributes attrib, unsigned type, unsigned elemCount, std::vector<T> const& data)
       {
-        addBuffer(attrib, &data[0], data.size() * sizeof(T));
+        return add(attrib, type, elemCount, &data[0], data.size() * sizeof(T));
       }
-
-      void addBuffer(Attributes attrib, const void * data, size_t size);
-
-      void setIndexCount(unsigned int count) { m_indexCount = count; }
 
       void draw() const;
 
     private:
-      Buffer * m_buffers[BUFFER_COUNT];
-
-      unsigned int m_indexCount;
-      bool m_loaded;
+      unsigned vao_ = 0;
+      unsigned buffers_[BUFFER_COUNT] = { 0 };
+      unsigned indexCount_ = 0;
   };
 
 }
-
-#endif

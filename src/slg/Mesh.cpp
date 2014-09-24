@@ -1,16 +1,35 @@
+/**
+ * Copyright (c) 2014 Daniel Wiberg
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ */
 
 #include "Mesh.hpp"
 #include "MeshHelpers.hpp"
 #include "OpenGL.hpp"
 
+#include <openctm.h>
+
 namespace slg {
 
   Mesh::Mesh()
-    : m_indexCount(0),
-      m_loaded(false)
   {
-    for (int i = 0; i < BUFFER_COUNT; ++i)
-      m_buffers[i] = 0;
   }
 
   Mesh::~Mesh()
@@ -20,154 +39,91 @@ namespace slg {
 
   void Mesh::destroy()
   {
-    m_loaded = false;
-    m_indexCount = 0;
+    glDeleteBuffers(BUFFER_COUNT, buffers_);
+    glDeleteVertexArrays(1, &vao_);
 
-    for (int i = 0; i < BUFFER_COUNT; ++i)
-    {
-      delete m_buffers[i];
-      m_buffers[i] = 0;
-    }
+    vao_ = 0;
   }
 
-  bool Mesh::load(const char * filename, bool useIndicies, bool computeTangents)
+  bool Mesh::load(const char * filename, bool computeTangents)
   {
-    destroy();
+    CTMcontext context = ctmNewContext(CTM_IMPORT);
+    bool result = false;
 
-    std::vector<glm::vec3> vertices;
-    std::vector<glm::vec2> uvs;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec3> tangents;
-    std::vector<glm::vec3> binormals;
-
-    std::vector<glm::vec3> finalVertices;
-    std::vector<glm::vec2> finalUvs;
-    std::vector<glm::vec3> finalNormals;
-    std::vector<glm::vec3> finalTangents;
-    std::vector<glm::vec3> finalBinormals;
-    std::vector<unsigned short> finalIndicies;
-
-    if (!loadObj(filename, vertices, uvs, normals))
-      return false;
-
-    m_buffers[VERTEX] = new Buffer(GL_ARRAY_BUFFER);
-    m_buffers[NORMAL] = new Buffer(GL_ARRAY_BUFFER);
-    m_buffers[UV] = new Buffer(GL_ARRAY_BUFFER);
-
-    if (useIndicies)
-      m_buffers[INDICIES] = new Buffer(GL_ELEMENT_ARRAY_BUFFER);
-
-    if (computeTangents)
+    ctmLoad(context, filename);
+    if (ctmGetError(context) == CTM_NONE)
     {
-      computeTangentBasis(vertices, uvs, normals, tangents, binormals);
+      result = true;
 
-      m_buffers[TANGENT] = new Buffer(GL_ARRAY_BUFFER);
-      m_buffers[BINORMAL] = new Buffer(GL_ARRAY_BUFFER);
+      const CTMuint triangleCount = ctmGetInteger(context, CTM_TRIANGLE_COUNT);
+      const CTMuint vertCount = ctmGetInteger(context, CTM_VERTEX_COUNT);
+      const CTMfloat * vertices = ctmGetFloatArray(context, CTM_VERTICES);
+      const CTMfloat * normals = ctmGetFloatArray(context, CTM_NORMALS);
+      const CTMfloat * texCoord0 = ctmGetFloatArray(context, CTM_UV_MAP_1);
+      const CTMuint * indices = ctmGetIntegerArray(context, CTM_INDICES);
 
-      if (useIndicies)
+      begin();
+      add(Mesh::VERTEX, GL_FLOAT, 3, vertices, sizeof(CTMfloat) * vertCount * 3);
+      add(Mesh::NORMAL, GL_FLOAT, 3, normals, sizeof(CTMfloat) * vertCount * 3);
+      add(Mesh::UV, GL_FLOAT, 3, texCoord0, sizeof(CTMfloat) * vertCount * 2);
+
+      if (computeTangents)
       {
-        calculateIndex(vertices, uvs, normals, tangents, binormals,
-                       finalIndicies, finalVertices, finalUvs, finalNormals, finalTangents, finalBinormals);
 
-        m_buffers[TANGENT]->upload(&tangents[0], tangents.size() * sizeof(float) * 3, GL_STATIC_DRAW);
-        m_buffers[BINORMAL]->upload(&binormals[0], binormals.size() * sizeof(float) * 3, GL_STATIC_DRAW);
       }
-      else
-      {
-        m_buffers[TANGENT]->upload(&finalTangents[0], finalTangents.size() * sizeof(float) * 3, GL_STATIC_DRAW);
-        m_buffers[BINORMAL]->upload(&finalBinormals[0], finalBinormals.size() * sizeof(float) * 3, GL_STATIC_DRAW);
-      }
+
+      add(Mesh::INDICIES, 0, 0, indices, sizeof(CTMuint) * triangleCount);
+      end(triangleCount);
     }
 
-    if (useIndicies)
+    ctmFreeContext(context);
+    return result;
+  }
+
+  Mesh & Mesh::begin()
+  {
+    destroy();
+    glGenVertexArrays(1, &vao_);
+    glBindVertexArray(vao_);
+
+    return *this;
+  }
+
+  void Mesh::end(unsigned indexCount)
+  {
+    indexCount_ = indexCount;
+    glBindVertexArray(0);
+  }
+
+  Mesh & Mesh::add(Attributes attrib, unsigned type, unsigned elemCount, const void * data, size_t size)
+  {
+    assert(vao_ != 0 && attrib < BUFFER_COUNT && buffers_[attrib] == 0);
+
+    glGenBuffers(1, &buffers_[attrib]);
+
+    if (attrib == INDICIES)
     {
-      if (!computeTangents)
-        calculateIndex(vertices, uvs, normals,
-                       finalIndicies, finalVertices, finalUvs, finalNormals);
-
-      m_buffers[VERTEX]->upload(&finalVertices[0], finalVertices.size() * sizeof(float) * 3, GL_STATIC_DRAW);
-      m_buffers[NORMAL]->upload(&finalNormals[0], finalNormals.size() * sizeof(float) * 3, GL_STATIC_DRAW);
-      m_buffers[UV]->upload(&finalUvs[0], finalUvs.size() * sizeof(float) * 2, GL_STATIC_DRAW);
-      m_buffers[INDICIES]->upload(&finalIndicies[0], finalIndicies.size() * sizeof(unsigned short), GL_STATIC_DRAW);
-
-      m_indexCount = finalIndicies.size();
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffers_[attrib]);
+      glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
     }
     else
     {
-      m_buffers[VERTEX]->upload(&vertices[0], vertices.size() * sizeof(glm::vec3), GL_STATIC_DRAW);
-      m_buffers[NORMAL]->upload(&normals[0], normals.size() * sizeof(glm::vec3), GL_STATIC_DRAW);
-      m_buffers[UV]->upload(&uvs[0], uvs.size() * sizeof(glm::vec2), GL_STATIC_DRAW);
-
-      m_indexCount = vertices.size();
+      glBindBuffer(GL_ARRAY_BUFFER, buffers_[attrib]);
+      glBufferData(GL_ARRAY_BUFFER, size, data, GL_STATIC_DRAW);
+      glEnableVertexAttribArray(attrib);
+      glVertexAttribPointer(attrib, elemCount, type, GL_FALSE, 0, 0);
     }
 
-    m_loaded = true;
-
-    return true;
-  }
-
-  void Mesh::addBuffer(Attributes attrib, const void * data, size_t size)
-  {
-    assert(attrib < BUFFER_COUNT && m_buffers[attrib] == 0);
-
-    m_buffers[attrib] = new Buffer(attrib == INDICIES ? GL_ELEMENT_ARRAY_BUFFER : GL_ARRAY_BUFFER);
-    m_buffers[attrib]->upload(data, size, GL_STATIC_DRAW);
-
-    m_loaded = true;
+    return *this;
   }
 
   void Mesh::draw() const
   {
-    assert(m_loaded);
+    assert(vao_ != 0);
 
-    if (m_buffers[VERTEX])
-    {
-      glEnableVertexAttribArray(VERTEX);
-      m_buffers[VERTEX]->bind();
-      glVertexAttribPointer(VERTEX, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
-    }
-
-    if (m_buffers[NORMAL])
-    {
-      glEnableVertexAttribArray(NORMAL);
-      m_buffers[NORMAL]->bind();
-      glVertexAttribPointer(NORMAL, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
-    }
-
-    if (m_buffers[UV])
-    {
-      glEnableVertexAttribArray(UV);
-      m_buffers[UV]->bind();
-      glVertexAttribPointer(UV, 2, GL_FLOAT, GL_FALSE, 0, (void *)0);
-    }
-
-    if (m_buffers[INDICIES])
-      m_buffers[INDICIES]->bind();
-
-    if (m_buffers[TANGENT])
-    {
-      glEnableVertexAttribArray(TANGENT);
-      m_buffers[TANGENT]->bind();
-      glVertexAttribPointer(TANGENT, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
-    }
-
-    if (m_buffers[BINORMAL])
-    {
-      glEnableVertexAttribArray(BINORMAL);
-      m_buffers[BINORMAL]->bind();
-      glVertexAttribPointer(BINORMAL, 3, GL_FLOAT, GL_FALSE, 0, (void *)0);
-    }
-
-    if (m_buffers[INDICIES])
-      glDrawElements(GL_TRIANGLES, m_indexCount, GL_UNSIGNED_SHORT, (void *)0);
-    else
-      glDrawArrays(GL_TRIANGLES, 0, m_indexCount);
-
-    glDisableVertexAttribArray(VERTEX);
-    glDisableVertexAttribArray(NORMAL);
-    glDisableVertexAttribArray(UV);
-    glDisableVertexAttribArray(TANGENT);
-    glDisableVertexAttribArray(BINORMAL);
+    glBindVertexArray(vao_);
+    glDrawArrays(GL_TRIANGLES, 0, indexCount_);
+    glBindVertexArray(0);
   }
 
 }
