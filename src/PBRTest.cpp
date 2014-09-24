@@ -1,4 +1,39 @@
 
+#include "slg/Window.hpp"
+
+
+class PBRTest : public slg::Window
+{
+  public:
+    PBRTest()
+      : slg::Window(1280, 720, "PBR Test")
+    {
+    }
+
+    void resize(int width, int height)
+    {
+    }
+
+    bool update(double dt)
+    {
+      return true;
+    }
+
+    void paint()
+    {
+    }
+};
+
+int main(int argc, char * argv[])
+{
+  PBRTest app;
+  app.run();
+
+  return 0;
+}
+
+
+/*
 #define FRAMEWORK_WIDTH 1280
 #define FRAMEWORK_HEIGHT 720
 #define FRAMEWORK_TITLE "PBR Test"
@@ -58,3 +93,4 @@ class PBRTest : public framework::Framework
 };
 
 DEFINE_APPLICATION(PBRTest);
+*/
